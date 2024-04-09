@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -64,19 +63,14 @@ func randomIPV6FromSubnet(network string) (net.IP, error) {
 // handleTunneling handles the tunneling of the incoming request
 func handleTunneling(ctx g.Ctx, w http.ResponseWriter, r *http.Request) {
 	// Add IP whitelist verification here
+
 	clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		g.Log().Error(ctx, err.Error())
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
-	fmt.Println(clientIP)
-
-	// g.Dump(ip)
-
-	if len(IpWhitelist) == 0 {
-		IpWhitelist = g.Cfg().MustGet(ctx, "IPWhitelist").Slice()
-	}
+	log.Printf("Client IP: %s", clientIP)
 
 	if !garray.NewFrom(IpWhitelist).Contains(clientIP) {
 		// Get the Proxy-Authorization header
