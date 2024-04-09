@@ -65,12 +65,12 @@ func randomIPV6FromSubnet(network string) (net.IP, error) {
 func handleTunneling(ctx g.Ctx, w http.ResponseWriter, r *http.Request) {
 	// Add IP whitelist verification here
 	clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
-	fmt.Println(clientIP)
 	if err != nil {
 		g.Log().Error(ctx, err.Error())
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
+	fmt.Println(clientIP)
 
 	// g.Dump(ip)
 
