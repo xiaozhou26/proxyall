@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -26,7 +27,7 @@ const (
 
 var (
 	DNSCache    = gcache.New()
-	IpWhitelist []string
+	IpWhitelist []interface{}
 )
 
 func randomIPV6FromSubnet(network string) (net.IP, error) {
@@ -63,25 +64,35 @@ func randomIPV6FromSubnet(network string) (net.IP, error) {
 // handleTunneling handles the tunneling of the incoming request
 func handleTunneling(ctx g.Ctx, w http.ResponseWriter, r *http.Request) {
 	// Add IP whitelist verification here
-	// IP whitelist verification
-	if len(IpWhitelist) > 0 {
-		remoteIP := strings.Split(r.RemoteAddr, ":")[0]
-		if !garray.NewStrArrayFrom(IpWhitelist).Contains(remoteIP) {
-			// Get the Proxy-Authorization header
-			auth := r.Header.Get("Proxy-Authorization")
-			if auth == "" {
-				// If no Proxy-Authorization header, return 407 status code
-				w.Header().Set("Proxy-Authenticate", `Basic realm="proxy"`)
-				http.Error(w, "authorization required", http.StatusProxyAuthRequired)
-				return
-			}
+	clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
+	fmt.Println(clientIP)
+	if err != nil {
+		g.Log().Error(ctx, err.Error())
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
 
-			// Validate the Proxy-Authorization header
-			const prefix = "Basic "
-			if !strings.HasPrefix(auth, prefix) || !checkAuth(ctx, auth[len(prefix):]) {
-				http.Error(w, "authorization failed", http.StatusForbidden)
-				return
-			}
+	// g.Dump(ip)
+
+	if len(IpWhitelist) == 0 {
+		IpWhitelist = g.Cfg().MustGet(ctx, "IPWhitelist").Slice()
+	}
+
+	if !garray.NewFrom(IpWhitelist).Contains(clientIP) {
+		// Get the Proxy-Authorization header
+		auth := r.Header.Get("Proxy-Authorization")
+		if auth == "" {
+			// If no Proxy-Authorization header, return 407 status code
+			w.Header().Set("Proxy-Authenticate", `Basic realm="proxy"`)
+			http.Error(w, "authorization required", http.StatusProxyAuthRequired)
+			return
+		}
+
+		// Validate the Proxy-Authorization header
+		const prefix = "Basic "
+		if !strings.HasPrefix(auth, prefix) || !checkAuth(ctx, auth[len(prefix):]) {
+			http.Error(w, "authorization failed", http.StatusForbidden)
+			return
 		}
 	}
 
@@ -234,7 +245,7 @@ func main() {
 		Addr = ":" + port
 	}
 
-	IpWhitelist = g.Cfg().MustGet(ctx, "IPWHITELIST").Strings()
+	IpWhitelist = g.Cfg().MustGet(ctx, "IPWHITELIST").Slice()
 
 	server := &http.Server{
 		Addr: Addr,
