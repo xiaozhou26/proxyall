@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"encoding/base64"
 	"io"
 	"log"
@@ -144,11 +143,7 @@ func handleTunneling(ctx g.Ctx, w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 
 	// Create a connection to the destination server
-	config := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	destConn, err := tls.DialWithDialer(dialer, "tcp", r.Host, config)
+	destConn, err := dialer.Dial("tcp", r.Host)
 	if err != nil {
 		g.Log().Error(ctx, err.Error())
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
