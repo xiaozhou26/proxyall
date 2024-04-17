@@ -15,8 +15,8 @@ RUN go mod download
 COPY . .
 RUN go build -ldflags "-s -w" -o /app/randomproxy .
 
-# 使用 Alpine Linux 作为最终镜像
-FROM alpine:latest
+
+FROM ubuntu
 
 # 设置工作目录
 WORKDIR /app
@@ -24,7 +24,19 @@ WORKDIR /app
 # 从构建阶段复制编译好的应用和资源
 COPY --from=builder /app/randomproxy /app/randomproxy
 
+RUN apt-get update && \
+    apt-get install -yq tzdata && \
+    ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    dpkg-reconfigure -f noninteractive tzdata && \
+    apt-get install -yq curl && \
+    apt-get install -yq ca-certificates
+
+
+# 赋予应用执行权限
+RUN chmod +x /app/randomproxy
+
 # 暴露端口
 EXPOSE 31280
 
+# 设置启动命令
 CMD ["/app/randomproxy"]

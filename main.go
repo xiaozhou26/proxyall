@@ -247,7 +247,6 @@ func main() {
 			// g.DumpWithType(r.Header)
 			if r.Method == http.MethodConnect {
 				// g.Log().Debug(ctx, "handleTunneling", r.Host)
-
 				handleTunneling(ctx, w, r)
 			} else {
 				// g.Log().Debug(ctx, "handleHTTP", r.Host)
